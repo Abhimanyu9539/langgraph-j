@@ -14,6 +14,7 @@
     pkgs.gcc
     pkgs.pkg-config
     pkgs.git
+    pkgs.python311Packages.pip
     # Optional: Add other system tools you might need
     # pkgs.nodejs_20
     # pkgs.sqlite
