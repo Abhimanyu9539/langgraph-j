@@ -3,50 +3,95 @@
 { pkgs, ... }: {
   # Which nixpkgs channel to use.
   channel = "stable-24.05"; # or "unstable"
+  
   # Use https://search.nixos.org/packages to find packages
   packages = [
-    # pkgs.go
-    # pkgs.python311
-    # pkgs.python311Packages.pip
+    # Python 3.11 for better compatibility
+    pkgs.python311
+    # UV - Fast Python package manager
+    pkgs.uv
+    # Build tools that Python packages might need
+    pkgs.gcc
+    pkgs.pkg-config
+    pkgs.git
+    # Optional: Add other system tools you might need
     # pkgs.nodejs_20
-    # pkgs.nodePackages.nodemon
+    # pkgs.sqlite
   ];
+  
   # Sets environment variables in the workspace
-  env = {};
+  env = {
+    # Let UV manage the Python environment
+    UV_PYTHON = "python3.11";
+    # UV cache directory
+    UV_CACHE_DIR = ".uv-cache";
+  };
+  
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [
-      # "vscodevim.vim"
+      # Python extensions
+      "ms-python.python"
+      "ms-python.vscode-pylance"
+      # Optional: Add other useful extensions
+      # "ms-python.black-formatter"
+      # "ms-python.isort"
     ];
+    
     # Enable previews
     previews = {
       enable = true;
       previews = {
+        # Add web previews here if you build web apps
         # web = {
-        #   # Example: run "npm run dev" with PORT set to IDX's defined port for previews,
-        #   # and show it in IDX's web preview panel
-        #   command = ["npm" "run" "dev"];
+        #   command = ["python" "main.py"];
         #   manager = "web";
         #   env = {
-        #     # Environment variables to set for your server
         #     PORT = "$PORT";
         #   };
         # };
       };
     };
+    
     # Workspace lifecycle hooks
     workspace = {
       # Runs when a workspace is first created
       onCreate = {
-        # Example: install JS dependencies from NPM
-        # npm-install = "npm install";
-        # Open editors for the following files by default, if they exist:
-        default.openFiles = [ ".idx/dev.nix" "README.md" ];
+        # Initialize UV project
+        init-uv-project = "uv init --python 3.11";
+        # Create pyproject.toml if it doesn't exist
+        create-pyproject = ''
+          if [ ! -f pyproject.toml ]; then
+            cat > pyproject.toml << 'EOF'
+[project]
+name = "my-project"
+version = "0.1.0"
+description = "A Python project managed with UV"
+authors = [
+    { name = "Your Name", email = "your.email@example.com" }
+]
+dependencies = []
+requires-python = ">=3.11"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = []
+EOF
+          fi
+        '';
+        # Open default files
+        default.openFiles = [ ".idx/dev.nix" "pyproject.toml" "README.md" ];
       };
+      
       # Runs when the workspace is (re)started
       onStart = {
-        # Example: start a background task to watch and re-build backend code
-        # watch-backend = "npm run watch-backend";
+        # Sync dependencies (creates .venv automatically)
+        sync-deps = "uv sync";
+        # Show UV status
+        show-status = "echo 'UV Python environment ready! Use: uv add <package> to install packages'";
       };
     };
   };
